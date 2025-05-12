@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["go", "run", "services/api-gateway/main.go"]
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_URL=http://auth:8081
+      - PDS_SERVICE_URL=http://pds:8082
+      - BGS_SERVICE_URL=http://bgs:8083
+    depends_on:
+      - auth
+      - pds
+      - bgs
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["go", "run", "services/auth/main.go"]
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auth
+      - JWT_SECRET=your-secret-key
+    depends_on:
+      - postgres
+
+  pds:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["go", "run", "services/pds/main.go"]
+    ports:
+      - "8082:8082"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/pds
+    depends_on:
+      - postgres
+
+  bgs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["go", "run", "services/bgs/main.go"]
+    ports:
+      - "8083:8083"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/bgs
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+
+volumes:
+  postgres-data:
